@@ -1,5 +1,29 @@
+require 'noty/errors'
+require 'noty/core'
+require 'noty/loader'
+require 'noty/plugin'
+require 'noty/extension'
+
+
 module Capistrano
+  # @example
+  #   set :noty_namespace, :noty # Default to notify
   class Noty
+
+    DEFAULT_NAMESPACE = :notify
+    RECIPES_DIR       = 'recipes'
+    EXTENTION_TYPES   = [:channel, :data_source, :template]
+
+    # Capistranot Noty Core instance used by default
+    #
+    # @attribute [r] instance
+    mattr_accessor :instance
+
+    # Capistrano configuration instance to operate on
+    #
+    # @attribute [r] capistrano
+    attr_reader :capistrano
+
 
     # Initialize Capistrano Noty infrastructure on default Capistrano's
     # configuration instance.
@@ -8,6 +32,21 @@ module Capistrano
     #
     # @return [::Capistrano::Noty] instance
     def self.load(capistrano)
+      core        = Core.new(capistrano.noty_namespace || DEFAULT_NAMESPACE)
+      core.loader = Loader.new(capistrano)
+      core.plugin = Plugin.new(core)
+
+      core.loader.load_plugin(core.namespace, core.plugin)
+      core.loader.load_recepies(core.recipes_path)
+
+      # GOTCHA:
+      #   Capistrano configuration could be set after loading Capistrano::Noty,
+      #   so we need to postpone settings evaluation untill the moment when
+      #   extensions are called.
+      #   -- zekefast 2012-09-06
+      core.configuration = lambda { capistrano.noty }
+
+      self.instance = core
     end
 
     # Register capistrano-noty extension on core instance which allows to add
@@ -36,6 +75,9 @@ module Capistrano
     #
     #   ::Capistrano::Noty.register_extension(:mail, ::Capistrano::Noty::Channel::MyMail)
     def self.register_extension(name, extension, core = nil)
+      core ||= self.instance
+
+      core.register(name, extension)
     end
   end
 end
