@@ -1,0 +1,19 @@
+# we don't want Gemfile.lock in gems
+Gemfile.lock
+
+# rcov and simplecov generated
+coverage
+coverage.data
+
+# rdoc generated
+rdoc
+
+# yard generated
+doc
+.yardoc
+
+# bundler
+.bundle
+
+# jeweler generated
+pkg
